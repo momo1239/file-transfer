@@ -91,6 +91,16 @@ void handle_client_request(int client_socket)
 				strcat(directory_listing, "\n");
 			}
 
+			// Calculate size of dir listing
+
+			size_t dir_listing_size = strlen(directory_listing);
+
+			char size_str[20];
+			snprintf(size_str, sizeof(size_str), "%zu", dir_listing_size);
+
+			// send size
+			sendto(client_socket, size_str, strlen(size_str), 0, (struct sockaddr *)&client_addr, addr_len);
+
 			// Send dir listing to client
 
 			sendto(client_socket, directory_listing, strlen(directory_listing), 0, (struct sockaddr *)&client_addr, addr_len);
