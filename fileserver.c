@@ -68,12 +68,12 @@ void handle_client_request(int client_socket)
 	// Receive command from client
 
 	recvfrom(client_socket, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&client_addr, &addr_len);
-	printf("Received command from client: %s\n", buffer);
+	printf("Received command from client: %i\n", buffer[0]);
 
 
 	// Check command for DIR functionality
 
-	if (strncmp(buffer, "DIR", 3) == 0)
+	if (buffer[0] == 0x1)
 	{
 		DIR *dir;
 		struct dirent *ent;
