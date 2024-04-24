@@ -19,9 +19,26 @@ main.c will have main code for the server. check cli args for port number. creat
 ### protocol.c and protocol.h
 protocol.c will have function to handle client requests and send responses back to client. 
 
-check buffer[0] == 0x1 for DIR
-0x2 for GET
-and 0x3 for PUT
+### packet structure
+opcodes
+0x1 = DIR Packet
+0x2 = get packet
+0x3 = put packet
+0x4 = ack packet
+0x5 = error packet
+0x6 = data packet
+
+dir packet will have an opcode 0x1 
+
+get and put packets will have their opcode respectively and then the filename to get or put. it will also need to have a number or something to distinguish text mode or ascii mode (potentially)
+
+ack packets will contain their opcode and the packet #
+
+error packet will contain their opcode and the error message. for example, if file does not exist (to get) 
+
+data packet will have their opcode, the packet #, and then the data to transfer
+
+### random theorizing below
 
 DIR -
 1. client sends 0x1 to server
