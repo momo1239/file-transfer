@@ -15,7 +15,7 @@ class TransferClient:
             response = b''
 
             while len(response) < response_size:
-                chunk, _ = self.client_socket.recvfrom(self.buffer_size)
+                chunk, _ = self.client_socket.recvfrom(response_size)
                 response += chunk
 
             return response.decode()
