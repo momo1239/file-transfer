@@ -5,6 +5,7 @@ void handle_client_request(int client_socket)
 	char buffer[BUFFER_SIZE];
 	struct sockaddr_in client_addr;
 	socklen_t addr_len = sizeof(client_addr);
+	int ack_packet_number;
 
 	// Receive command from client
 
@@ -54,6 +55,77 @@ void handle_client_request(int client_socket)
 			exit(1);
 		}
 	}
+	else if (buffer[0] == 0x2)
+	{
+		// Extract filename
+		char filename[BUFFER_SIZE];
+		strcpy(filename, buffer + 1); 
+
+		FILE *file = fopen(filename, "rb");
+		if (file == NULL)
+		{
+			// file not found send error packet
+			char error_msg[] = "File not found!";
+			char error_packet[BUFFER_SIZE];
+			error_packet[0] = 0x5;
+			strcpy(error_packet + 1, error_msg);
+			sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)&client_addr, addr_len);
+		}
+		else
+		{
+			// calculate num of packets needed to send
+			fseek(file, 0, SEEK_END);
+			long file_size = ftell(file);
+			int packet_count = (file_size + BUFFER_SIZE - 1) / BUFFER_SIZE;
+			fseek(file, 0, SEEK_SET); // reset file pointer
+
+			// send packet count to client
+			char packet_count_str[20];
+			snprintf(packet_count_str, sizeof(packet_count_str), "%d", packet_count);
+			sendto(client_socket, packet_count_str, strlen(packet_count_str), 0, (struct sockaddr *)&client_addr, addr_len);
+
+			// send file in packet chunks
+			char file_buffer[BUFFER_SIZE];
+			int packet_number = 1;
+			size_t bytes_read;
+
+			while ((bytes_read = fread(file_buffer, 1, BUFFER_SIZE, file)) > 0)
+			{
+				sendto(client_socket, file_buffer, bytes_read, 0, (struct sockaddr *)&client_addr, addr_len);
+				printf("Send packet %i\n", packet_number);
+
+				// wait for ack
+				while (1)
+				{
+					recvfrom(client_socket, buffer, BUFFER_SIZE, 0, NULL, NULL);
+					if (buffer[0] == 0x4)
+					{
+						ack_packet_number = buffer[1];
+						break;
+					}
+				}
+
+				if (ack_packet_number != packet_number)
+				{
+					// if ack is not for packet, resend
+					fseek(file, -bytes_read, SEEK_CUR);
+					continue;
+				}
+
+				printf("Received ACK for packet %i\n", packet_number);
+
+				packet_number++;
+
+				if (packet_number > packet_count)
+				{
+					break;
+				}
+			}
+
+			fclose(file);
+		}
+	}
+
 
 
 }
