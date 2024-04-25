@@ -9,39 +9,64 @@ class TransferClient:
         self.buffer_size = 1024
 
     def send_command(self, command):
-            self.client_socket.sendto(command.encode(), (self.server_address, self.server_port))
-            size_str, _ = self.client_socket.recvfrom(self.buffer_size)
-            response_size = int(size_str)
-            response = b''
-
-            while len(response) < response_size:
-                chunk, _ = self.client_socket.recvfrom(response_size)
-                response += chunk
-
-            return response.decode()
+        self.client_socket.sendto(command.encode(), (self.server_address, self.server_port))
+        size_str, _ = self.client_socket.recvfrom(self.buffer_size)
+        response_size = int(size_str)
+        response = b''
+        while len(response) < response_size:
+            chunk, _ = self.client_socket.recvfrom(self.buffer_size)
+            response += chunk
+        return response.decode()
 
     def list_files(self):
-            response = self.send_command(chr(0x1))
-            print("List of files on server: ")
-            print(response)
+        response = self.send_command(chr(0x1))
+        print("List of files on server: ")
+        print(response)
 
     def help_menu(self):
-            print("\nAvailable commands:")
-            print("1. LIST - List files on server")
-            print("2. GET - Get files from server")
-            print("3. PUT - Upload files to server")
-            print("4. QUIT - Exit the client\n")
+        print("\nAvailable commands:")
+        print("1. LIST - List files on server")
+        print("2. GET - Get files from server")
+        print("3. PUT - Upload files to server")
+        print("4. QUIT - Exit the client\n")
+
+    def receive_file(self, filename, total_packets):
+        with open(filename, 'ab') as f:
+            packet_number = 1
+            while packet_number <= total_packets:
+                data, _ = self.client_socket.recvfrom(self.buffer_size)
+                if not data:
+                    break
+                f.write(data)
+                print(f"Received packet {packet_number}")
+                ack_packet = bytes([0x4, packet_number])
+                self.client_socket.sendto(ack_packet, (self.server_address, self.server_port))
+                print(f"Sent ACK for packet {packet_number}")
+                packet_number += 1
 
     def get_files(self, filename):
-        print("Not available yet!")
+        get_packet = bytes([0x2]) + filename.encode()
+
+        self.client_socket.sendto(get_packet, (self.server_address, self.server_port))
+
+        response, _ = self.client_socket.recvfrom(self.buffer_size)
+
+        if response[0] == 0x5:
+            error_msg = response[1:].decode()
+            print("Error:", error_msg)
+            return
+        else:
+            total_packets = int(response.decode())
+
+        self.receive_file(filename, total_packets)
+        print(f"File received: {filename}")
 
     def put_files(self, filename):
         print("Not available yet!")
 
-        
     def quit(self):
-            self.client_socket.close()
-            print("Exiting...")
+        self.client_socket.close()
+        print("Exiting...")
 
 def main():
     if len(sys.argv) != 3:
@@ -64,9 +89,15 @@ def main():
         elif command == "HELP":
             client.help_menu()
         elif command == "GET":
-            client.get_files("empty")
+            if len(user_input) > 1:
+                client.get_files(user_input[1])
+            else:
+                print("Usage: GET <filename>")
         elif command == "PUT":
-            client.put_files("empty")
+            if len(user_input) > 1:
+                client.put_files(user_input[1])
+            else:
+                print("Usage: PUT <filename>")
         elif command == "QUIT":
             client.quit()
             break
@@ -75,5 +106,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
