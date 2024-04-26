@@ -17,9 +17,31 @@ void handle_client_request(int client_socket)
 
 	if (buffer[0] == 0x1)
 	{
-		DIR *dir;
 		struct dirent *ent;
-		if ((dir = opendir(".")) != NULL)
+		char *dir_path[BUFFER_SIZE];
+		strcpy(dir_path, ".");
+
+
+
+
+		if (buffer[1]  == '\0')
+		{
+			printf("%s", dir_path);
+
+		}
+		else
+		{
+			char temp[BUFFER_SIZE];
+			strcpy(temp, buffer + 1);
+			strcat(dir_path, "/");
+			strcat(dir_path, temp);
+			printf("%s", dir_path);
+		}
+
+
+		DIR *dir = opendir(dir_path);
+
+		if (dir  != NULL)
 		{
 			// Create buffer to add list of files
 			char directory_listing[BUFFER_SIZE];
