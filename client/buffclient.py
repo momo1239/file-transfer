@@ -18,8 +18,13 @@ class TransferClient:
             response += chunk
         return response.decode()
 
-    def list_files(self):
-        response = self.send_command(chr(0x1))
+    def list_files(self, dir_path=None):
+        if dir_path is None:
+            command = chr(0x1)
+        else:
+            command = chr(0x1) + dir_path
+
+        response = self.send_command(command)
         print("List of files on server: ")
         print(response)
 
@@ -85,7 +90,8 @@ def main():
         command = user_input[0].upper()
 
         if command == "LIST":
-            client.list_files()
+            dir_path = user_input[1] if len(user_input) > 1 else None
+            client.list_files(dir_path)
         elif command == "HELP":
             client.help_menu()
         elif command == "GET":
