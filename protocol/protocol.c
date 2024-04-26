@@ -18,10 +18,9 @@ void handle_client_request(int client_socket)
 	if (buffer[0] == 0x1)
 	{
 		struct dirent *ent;
-		char *dir_path[BUFFER_SIZE];
+		char dir_path[BUFFER_SIZE];
+		memset(dir_path, 0, sizeof(dir_path));
 		strcpy(dir_path, ".");
-
-
 
 
 		if (buffer[1]  == '\0')
@@ -31,10 +30,8 @@ void handle_client_request(int client_socket)
 		}
 		else
 		{
-			char temp[BUFFER_SIZE];
-			strcpy(temp, buffer + 1);
 			strcat(dir_path, "/");
-			strcat(dir_path, temp);
+			strcat(dir_path, buffer + 1);
 			printf("%s", dir_path);
 		}
 
