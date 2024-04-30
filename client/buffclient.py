@@ -41,7 +41,8 @@ class TransferClient:
         print("1. LIST - List files on server")
         print("2. GET - Get files from server")
         print("3. PUT - Upload files to server")
-        print("4. QUIT - Exit the client\n")
+        print("4. CD - Change directory")
+        print("5. QUIT - Exit the client\n")
 
     def receive_file(self, filename, total_packets):
         with open(filename, 'ab') as f:
@@ -131,7 +132,7 @@ def main():
                 client.cd(user_input[1])
             else:
                 print("Usage: cd <dir>")
-        elif command == "QUIT":
+        elif command == "QUIT" or "EXIT":
             client.quit()
             break
         else:
