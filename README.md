@@ -13,6 +13,6 @@ buff |--download/      Contains sample files for testing purposes
      |--obj/           Contains object files (.o) after compilation
      |--src/           Contains source code files (.c)
      |--Makefile       Project Makefile
-     ```
+```
 
 # Protocol
