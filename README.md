@@ -9,8 +9,6 @@ Run "make" and "make clean"
 ```
 buff |--download/      Contains sample files for testing purposes
      |--build/         Contains executable files after linking
-     |--include/       Contains header files (.h)
-     |--obj/           Contains object files (.o) after compilation
      |--src/           Contains source code files (.c)
      |--Makefile       Project Makefile
 ```
