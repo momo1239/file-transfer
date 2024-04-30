@@ -8,7 +8,7 @@ Run "make" and "make clean"
 # Project Structure
 ```
 buff |--download/      Contains sample files for testing purposes
-     |--build/         Contains executable files after linking
+     |--build/         Contains executable files after compilation 
      |--src/           Contains source code files (.c)
      |--Makefile       Project Makefile
 ```
