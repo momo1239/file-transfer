@@ -38,8 +38,11 @@ void list_dir(int client_socket, const char *buffer, const struct sockaddr_in *c
 	}
 	else
 	{
-		perror("Could not list dir");
-		exit(1);
+		char error_msg[] = "Error listing directory!";
+		char error_packet[BUFFER_SIZE];
+		error_packet[0] = CMD_ERR;
+		strcpy(error_packet + 1, error_msg);
+		sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
 	}
 }
 
@@ -104,4 +107,35 @@ void get_request(int client_socket, const char *buffer, const struct sockaddr_in
 		}
 		fclose(file);
 	}
+}
+
+
+void change_directory(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len) {
+    char new_dir[BUFFER_SIZE];
+    memset(new_dir, 0, sizeof(new_dir));
+    strcpy(new_dir, buffer + 1); 
+
+ 
+    if (chdir(new_dir) == 0)
+    {
+      
+        char success_msg[] = "Directory changed successfully!";
+        char success_packet[BUFFER_SIZE];
+        success_packet[0] = CMD_ACK;
+
+        strcpy(success_packet + 1, success_msg);
+
+        sendto(client_socket, success_packet, strlen(success_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
+    }
+    else
+    {
+       
+        char error_msg[] = "Error changing directory!";
+        char error_packet[BUFFER_SIZE];
+        error_packet[0] = CMD_ERR;
+
+        strcpy(error_packet + 1, error_msg);
+
+        sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
+    }
 }
