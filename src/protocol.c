@@ -24,6 +24,10 @@ void handle_client_request(int client_socket)
 	{
 		get_request(client_socket, buffer, &client_addr, addr_len);
 	}
+	else if (buffer[0] == CMD_CD)
+	{
+		change_directory(client_socket, buffer, &client_addr, addr_len);
+	}
 
 
 
