@@ -3,27 +3,25 @@ CFLAGS = -O -Wall -Wshadow -Wextra -pedantic -Wmissing-prototypes -Wstrict-proto
 LDFLAGS = -lm
 
 SRCDIR = src
-PROTODIR = protocol
-SERVERDIR = server
+BUILDDIR = build
 
 SOURCES = $(wildcard $(SRCDIR)/*.c)
-PROTOCOL_SOURCES = $(wildcard $(PROTODIR)/*.c)
-SERVER_SOURCES = $(wildcard $(SERVERDIR)/*.c)
+OBJECTS = $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%.o,$(SOURCES))
 
-OBJECTS = $(SOURCES:.c=.o) $(PROTOCOL_SOURCES:.c=.o) $(SERVER_SOURCES:.c=.o)
-
-EXECUTABLE = fileserver
+EXECUTABLE = $(BUILDDIR)/fileserver
 
 .PHONY: all clean
 
 all: $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS)
+$(EXECUTABLE): $(OBJECTS) | $(BUILDDIR)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-%.o: %.c
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-clean:
-	rm -f $(OBJECTS) $(EXECUTABLE)
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
 
+clean:
+	rm -rf $(BUILDDIR)
