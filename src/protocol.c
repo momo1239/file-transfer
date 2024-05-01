@@ -28,6 +28,10 @@ void handle_client_request(int client_socket)
 	{
 		change_directory(client_socket, buffer, &client_addr, addr_len);
 	}
+	else if (buffer[0] == 0x7)
+	{
+		pwd(client_socket, &client_addr, addr_len);
+	}
 
 
 
