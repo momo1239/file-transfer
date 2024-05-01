@@ -110,7 +110,8 @@ void get_request(int client_socket, const char *buffer, const struct sockaddr_in
 }
 
 
-void change_directory(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len) {
+void change_directory(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len) 
+{
     char new_dir[BUFFER_SIZE];
     memset(new_dir, 0, sizeof(new_dir));
     strcpy(new_dir, buffer + 1); 
@@ -138,4 +139,24 @@ void change_directory(int client_socket, const char *buffer, const struct sockad
 
         sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
     }
+}
+
+void pwd(int client_socket, const struct sockaddr_in *client_addr, socklen_t addr_len)
+{
+    char cwd[BUFFER_SIZE];
+
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    {
+        char error_msg[] = "Error getting current working directory";
+        char error_packet[BUFFER_SIZE];
+        error_packet[0] = CMD_ERR;
+
+        strcpy(error_packet + 1, error_msg);
+
+        sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
+        
+    }
+
+
+    sendto(client_socket, cwd, strlen(cwd), 0, (struct sockaddr *)client_addr, addr_len);
 }
