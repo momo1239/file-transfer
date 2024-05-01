@@ -132,7 +132,7 @@ def main():
                 client.cd(user_input[1])
             else:
                 print("Usage: cd <dir>")
-        elif command == "QUIT" or "EXIT":
+        elif command == "QUIT":
             client.quit()
             break
         else:
