@@ -42,7 +42,8 @@ class TransferClient:
         print("2. GET - Get files from server")
         print("3. PUT - Upload files to server")
         print("4. CD - Change directory")
-        print("5. QUIT - Exit the client\n")
+        print("5. PWD - Print working directory")
+        print("6. QUIT - Exit the client\n")
 
     def receive_file(self, filename, total_packets):
         with open(filename, 'ab') as f:
@@ -91,6 +92,13 @@ class TransferClient:
         elif response[0] == 0x4:
             ack_msg = response[1:].decode()
             print("Success:", ack_msg)
+    def pwd(self):
+        command = bytes([0x7])
+        self.client_socket.sendto(command, (self.server_address, self.server_port))
+
+        response, _ = self.client_socket.recvfrom(self.buffer_size)
+
+        print(response.decode())
 
     def quit(self):
         self.client_socket.close()
@@ -132,6 +140,8 @@ def main():
                 client.cd(user_input[1])
             else:
                 print("Usage: cd <dir>")
+        elif command == "PWD":
+            client.pwd()
         elif command == "QUIT":
             client.quit()
             break
