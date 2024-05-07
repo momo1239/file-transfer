@@ -36,6 +36,12 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	chdir(".");
+	if (chroot(".") != 0)
+	{
+		perror("chroot .");
+	}
+
 	printf("Server is running...\n");
 
 	// Loop for receiving commands
