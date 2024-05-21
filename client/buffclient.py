@@ -1,4 +1,6 @@
+import os
 import socket
+import struct
 import sys
 
 class TransferClient:
@@ -11,6 +13,10 @@ class TransferClient:
     def send_command(self, command):
         self.client_socket.sendto(command.encode(), (self.server_address, self.server_port))
         size_str, _ = self.client_socket.recvfrom(self.buffer_size)
+
+        if not size_str:
+            print("Error empty response")
+            return None
 
         if size_str[:1] != b'\x05':
             response = b''
@@ -58,7 +64,7 @@ class TransferClient:
                 self.client_socket.sendto(ack_packet, (self.server_address, self.server_port))
                 print(f"Sent ACK for packet {packet_number}")
                 packet_number += 1
-
+    
     def get_files(self, filename):
         get_packet = bytes([0x2]) + filename.encode()
 
@@ -75,9 +81,41 @@ class TransferClient:
 
         self.receive_file(filename, total_packets)
         print(f"File received: {filename}")
+    
+    def send_file(self, filename):
+        with open(filename, 'rb') as f:
+            file_data = f.read()
+            total_packets = (len(file_data) + self.buffer_size - 1) // self.buffer_size
 
-    def put_files(self, filename):
-        print("Not available yet!")
+            self.client_socket.sendto(struct.pack('i', total_packets), (self.server_address, self.server_port))
+
+            for packet_number in range(1, total_packets + 1):
+                start_index = (packet_number - 1) * self.buffer_size
+                end_index = min(packet_number * self.buffer_size, len(file_data))
+                data_chunk = file_data[start_index:end_index]
+
+                self.client_socket.sendto(data_chunk, (self.server_address, self.server_port))
+
+                ack_packet, _ = self.client_socket.recvfrom(2)
+                ack_packet_number = ack_packet[1]
+
+                print(f"Received ACK for packet {ack_packet_number}")
+
+        print(f"File uploaded: {filename}")
+
+    def upload_file(self, filename):
+        if not os.path.exists(filename):
+            print(f"Error: File '{filename}' does not exist!")
+            return
+
+        upload_packet = bytes([0x3]) + filename.encode()
+
+        self.client_socket.sendto(upload_packet, (self.server_address, self.server_port))
+
+        try:
+            self.send_file(filename)
+        except Exception as e:
+            print(f"Error during file upload: {e}")
 
     def cd(self, dir_path):
         command = bytes([0x6]) + dir_path.encode()
@@ -132,7 +170,7 @@ def main():
                 print("Usage: GET <filename>")
         elif command == "PUT":
             if len(user_input) > 1:
-                client.put_files(user_input[1])
+                client.upload_file(user_input[1])
             else:
                 print("Usage: PUT <filename>")
         elif command == "CD":
