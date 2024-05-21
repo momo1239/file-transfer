@@ -31,6 +31,6 @@ void change_directory(int client_socket, const char *buffer, const struct sockad
 
 void pwd(int client_socket, const struct sockaddr_in *client_addr, socklen_t addr_len);
 
-void put_request(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len);
+void upload_request(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len);
 
 #endif
