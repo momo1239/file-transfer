@@ -180,7 +180,7 @@ void pwd(int client_socket, const struct sockaddr_in *client_addr, socklen_t add
     free(cwd);
 }
 
-void put_request(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len)
+void upload_request(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len)
 {
     char filename[BUFFER_SIZE];
     strcpy(filename, buffer + 1);
@@ -188,31 +188,49 @@ void put_request(int client_socket, const char *buffer, const struct sockaddr_in
     FILE *file = fopen(filename, "wb");
     if (file == NULL)
     {
-        char error_msg[] = "Error creating file on server!";
+        char error_msg[] = "Error opening file for writing!";
         char error_packet[BUFFER_SIZE];
-        error_packet[0] = CMD_ERR;
+        error_packet[0] = 0x5;
         strcpy(error_packet + 1, error_msg);
         sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
+        return;  // Exit the function if file opening failed
     }
-    else
+
+    int total_packets;
+    if (recvfrom(client_socket, (char *)&total_packets, sizeof(total_packets), 0, NULL, NULL) < 0)
     {
-        int packet_number = 1;
-        while (1)
-        {
-            recvfrom(client_socket, (char *)buffer, BUFFER_SIZE, 0, NULL, NULL);
-            if (buffer[0] == CMD_PUT)
-            {
-                fwrite(buffer + 1, 1, strlen(buffer + 1), file);
-                char ack_packet[2];
-                ack_packet[0] = CMD_ACK;
-                ack_packet[1] = packet_number;
-                sendto(client_socket, ack_packet, 2, 0, (struct sockaddr *)client_addr, addr_len);
-                printf("Received packet %i\n", packet_number);
-                packet_number++;
-            }
-			fclose(file);
-            
-        }
+        char error_msg[] = "Error receiving total packet count!";
+        char error_packet[BUFFER_SIZE];
+        error_packet[0] = 0x5;
+        strcpy(error_packet + 1, error_msg);
+        sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
+        fclose(file);
+        return;  // Exit the function if receiving total packets failed
     }
+
+    for (int packet_number = 1; packet_number <= total_packets; packet_number++)
+    {
+        char file_buffer[BUFFER_SIZE];
+        ssize_t bytes_received = recvfrom(client_socket, file_buffer, BUFFER_SIZE, 0, NULL, NULL);
+        if (bytes_received < 0)
+        {
+            char error_msg[] = "Error receiving file data!";
+            char error_packet[BUFFER_SIZE];
+            error_packet[0] = 0x5;
+            strcpy(error_packet + 1, error_msg);
+            sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
+            fclose(file);
+            return;  // Exit the function if receiving file data failed
+        }
+
+        fwrite(file_buffer, 1, bytes_received, file);
+
+        char ack_packet[2] = {0x4, (char)packet_number};
+        sendto(client_socket, ack_packet, sizeof(ack_packet), 0, (struct sockaddr *)client_addr, addr_len);
+    }
+
+    fclose(file);
 }
+
+
 
