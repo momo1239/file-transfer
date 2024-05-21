@@ -19,7 +19,8 @@ enum Command
 	CMD_PUT = 0x3,
 	CMD_ACK = 0x4,
 	CMD_ERR = 0x5,
-	CMD_CD = 0x6
+	CMD_CD = 0x6,
+	CMD_PWD = 0x7
 };
 
 void list_dir(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len);
@@ -29,4 +30,7 @@ void get_request(int client_socket, const char *buffer, const struct sockaddr_in
 void change_directory(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len);
 
 void pwd(int client_socket, const struct sockaddr_in *client_addr, socklen_t addr_len);
+
+void put_request(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len);
+
 #endif
