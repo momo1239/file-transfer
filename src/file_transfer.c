@@ -2,49 +2,55 @@
 
 void list_dir(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len)
 {
-	struct dirent *ent;
-	char dir_path[BUFFER_SIZE];
-	char directory_listing[BUFFER_SIZE];
-	DIR *dir;
+    struct dirent *ent;
+    char dir_path[BUFFER_SIZE];
+    char directory_listing[BUFFER_SIZE];
+    DIR *dir;
 
-	memset(dir_path, 0, BUFFER_SIZE);
-	memset(directory_listing, 0, BUFFER_SIZE);
+    memset(dir_path, 0, BUFFER_SIZE);
+    memset(directory_listing, 0, BUFFER_SIZE);
 
-	strcpy(dir_path, ".");
-	if (buffer[1] != '\0')
-	{
-		strcat(dir_path, "/");
-		strcat(dir_path, buffer + 1);
-	}
+    strncpy(dir_path, ".", BUFFER_SIZE - 1);
+    if (buffer[1] != '\0')
+    {
+        strncat(dir_path, "/", BUFFER_SIZE - strlen(dir_path) - 1);
+        strncat(dir_path, buffer + 1, BUFFER_SIZE - strlen(dir_path) - 1);
+    }
 
-	dir = opendir(dir_path);
+    dir = opendir(dir_path);
 
-	if (dir != NULL)
-	{
-		while ((ent = readdir(dir)) != NULL) 
-		{
-			strcat(directory_listing, ent->d_name);
-			strcat(directory_listing, "\n");
-		}
-		size_t dir_listing_size = strlen(directory_listing);
+    if (dir != NULL)
+    {
+        while ((ent = readdir(dir)) != NULL) 
+        {
+            if (strlen(directory_listing) + strlen(ent->d_name) + 2 > BUFFER_SIZE)
+            {
+            
+                break;
+            }
+            strncat(directory_listing, ent->d_name, BUFFER_SIZE - strlen(directory_listing) - 1);
+            strncat(directory_listing, "\n", BUFFER_SIZE - strlen(directory_listing) - 1);
+        }
+        size_t dir_listing_size = strlen(directory_listing);
 
-		char size_str[20];
-		snprintf(size_str, sizeof(size_str), "%zu", dir_listing_size);
+        char size_str[20];
+        snprintf(size_str, sizeof(size_str), "%zu", dir_listing_size);
 
-		sendto(client_socket, size_str, strlen(size_str), 0, (struct sockaddr *)client_addr, addr_len);
-		sendto(client_socket, directory_listing, strlen(directory_listing), 0, (struct sockaddr *)client_addr, addr_len);
+        sendto(client_socket, size_str, strlen(size_str), 0, (struct sockaddr *)client_addr, addr_len);
+        sendto(client_socket, directory_listing, strlen(directory_listing), 0, (struct sockaddr *)client_addr, addr_len);
 
-		closedir(dir);
-	}
-	else
-	{
-		char error_msg[] = "Error listing directory!";
-		char error_packet[BUFFER_SIZE];
-		error_packet[0] = CMD_ERR;
-		strcpy(error_packet + 1, error_msg);
-		sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
-	}
+        closedir(dir);
+    }
+    else
+    {
+        char error_msg[] = "Error listing directory!";
+        char error_packet[BUFFER_SIZE];
+        error_packet[0] = CMD_ERR;
+        strncpy(error_packet + 1, error_msg, BUFFER_SIZE - 1);
+        sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
+    }
 }
+
 
 void get_request(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len)
 {
@@ -143,9 +149,19 @@ void change_directory(int client_socket, const char *buffer, const struct sockad
 
 void pwd(int client_socket, const struct sockaddr_in *client_addr, socklen_t addr_len)
 {
-    char cwd[BUFFER_SIZE];
+    char *cwd = NULL;
+    size_t cwd_size = 0;
 
-    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    // Get the size of the current working directory
+    ssize_t len = -1;
+    while (len < 0) {
+        cwd_size += 100; // Incremental allocation size
+        cwd = realloc(cwd, cwd_size);
+        len = getcwd(cwd, cwd_size);
+    }
+
+    // Check for errors
+    if (len == -1)
     {
         char error_msg[] = "Error getting current working directory";
         char error_packet[BUFFER_SIZE];
@@ -157,6 +173,46 @@ void pwd(int client_socket, const struct sockaddr_in *client_addr, socklen_t add
         
     }
 
-
+    // Send the current working directory
     sendto(client_socket, cwd, strlen(cwd), 0, (struct sockaddr *)client_addr, addr_len);
+
+    // Free dynamically allocated memory
+    free(cwd);
 }
+
+void put_request(int client_socket, const char *buffer, const struct sockaddr_in *client_addr, socklen_t addr_len)
+{
+    char filename[BUFFER_SIZE];
+    strcpy(filename, buffer + 1);
+
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL)
+    {
+        char error_msg[] = "Error creating file on server!";
+        char error_packet[BUFFER_SIZE];
+        error_packet[0] = CMD_ERR;
+        strcpy(error_packet + 1, error_msg);
+        sendto(client_socket, error_packet, strlen(error_msg) + 1, 0, (struct sockaddr *)client_addr, addr_len);
+    }
+    else
+    {
+        int packet_number = 1;
+        while (1)
+        {
+            recvfrom(client_socket, (char *)buffer, BUFFER_SIZE, 0, NULL, NULL);
+            if (buffer[0] == CMD_PUT)
+            {
+                fwrite(buffer + 1, 1, strlen(buffer + 1), file);
+                char ack_packet[2];
+                ack_packet[0] = CMD_ACK;
+                ack_packet[1] = packet_number;
+                sendto(client_socket, ack_packet, 2, 0, (struct sockaddr *)client_addr, addr_len);
+                printf("Received packet %i\n", packet_number);
+                packet_number++;
+            }
+			fclose(file);
+            
+        }
+    }
+}
+
